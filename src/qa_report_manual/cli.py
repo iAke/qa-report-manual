@@ -8,6 +8,7 @@ from pathlib import Path
 from .capture import capture_site
 from .docx_writer import write_qa_report_docx, write_user_manual_docx
 from .generators import render_qa_report, render_user_manual
+from .xlsx_writer import write_qa_report_xlsx
 
 
 def _sanitize_filename_part(url: str) -> str:
@@ -34,8 +35,8 @@ def main(argv: list[str] | None = None) -> int:
         help="Maximum same-site pages to crawl (default: 15)",
     )
     parser.add_argument(
-        "--format", choices=["md", "docx", "both"], default="both",
-        help="Output format (default: both)",
+        "--format", choices=["md", "docx", "xlsx", "all"], default="all",
+        help="Output format (default: all — md + docx + xlsx).",
     )
     parser.add_argument(
         "--no-screenshots", action="store_true",
@@ -65,20 +66,29 @@ def main(argv: list[str] | None = None) -> int:
         print("Tip: run `playwright install chromium` once after installing dependencies.", file=sys.stderr)
         return 1
 
+    want_md = args.format in ("md", "all")
+    want_docx = args.format in ("docx", "all")
+    want_xlsx = args.format in ("xlsx", "all")
+
     written: list[Path] = []
-    if args.format in ("md", "both"):
+    if want_md:
         qa_md = out_dir / f"{prefix}-qa-report.md"
         man_md = out_dir / f"{prefix}-user-manual.md"
         qa_md.write_text(render_qa_report(site), encoding="utf-8")
         man_md.write_text(render_user_manual(site), encoding="utf-8")
         written += [qa_md, man_md]
 
-    if args.format in ("docx", "both"):
+    if want_docx:
         qa_docx = out_dir / f"{prefix}-qa-report.docx"
         man_docx = out_dir / f"{prefix}-user-manual.docx"
         write_qa_report_docx(site, qa_docx)
         write_user_manual_docx(site, man_docx)
         written += [qa_docx, man_docx]
+
+    if want_xlsx:
+        qa_xlsx = out_dir / f"{prefix}-qa-report.xlsx"
+        write_qa_report_xlsx(site, qa_xlsx)
+        written.append(qa_xlsx)
 
     lines = "\n".join(f"  {p.resolve()}" for p in written)
     print(f"Crawled {len(site.pages)} page(s). Wrote:\n{lines}")

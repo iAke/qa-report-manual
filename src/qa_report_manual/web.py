@@ -11,6 +11,7 @@ from flask import Flask, abort, jsonify, redirect, render_template_string, reque
 from .capture import capture_site
 from .docx_writer import write_qa_report_docx, write_user_manual_docx
 from .generators import render_qa_report, render_user_manual
+from .xlsx_writer import write_qa_report_xlsx
 
 app = Flask(__name__)
 OUT_ROOT = Path("output/web")
@@ -46,6 +47,8 @@ def _run_job(job_id: str, url: str, max_pages: int, screenshots: bool) -> None:
         files.append(f"{prefix}-qa-report.docx")
         write_user_manual_docx(site, job_dir / f"{prefix}-user-manual.docx")
         files.append(f"{prefix}-user-manual.docx")
+        write_qa_report_xlsx(site, job_dir / f"{prefix}-qa-report.xlsx")
+        files.append(f"{prefix}-qa-report.xlsx")
 
         JOBS[job_id].update(status="done", files=files, prefix=prefix, pages=len(site.pages), stage="done")
     except Exception as exc:
